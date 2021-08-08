@@ -7,17 +7,22 @@ use App\Repository\GradeRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * @ApiResource()
+ * @ApiResource(
+ *     normalizationContext={"groups"={"read:grade"}}
+ * )
  * @ORM\Entity(repositoryClass=GradeRepository::class)
  */
+
 class Grade
 {
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
      * @ORM\Column(type="integer")
+     * @Groups({"read:grade"})
      */
     private $id;
 
@@ -28,17 +33,20 @@ class Grade
      *     max = 50,
      *     maxMessage = "The value of the note must note exceed {{ limit }}"
      * )
+     * @Groups({"read:grade", "read:student"})
      */
     private $value;
 
     /**
      * @ORM\Column(type="string", length=100)
+     * @Groups({"read:grade", "read:student"})
      */
     private $subject;
 
     /**
      * @ORM\ManyToOne(targetEntity=Student::class, inversedBy="grade")
      * @ORM\JoinColumn(nullable=false)
+     * @Groups({"read:grade"})
      */
     private $student;
 
