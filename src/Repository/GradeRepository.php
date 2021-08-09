@@ -19,32 +19,51 @@ class GradeRepository extends ServiceEntityRepository
         parent::__construct($registry, Grade::class);
     }
 
-    // /**
-    //  * @return Grade[] Returns an array of Grade objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    /**
+     * @param $id
+     * @return Grade[] Returns the average of a given student's grades
+     * @throws \Doctrine\ORM\NoResultException
+     * @throws \Doctrine\ORM\NonUniqueResultException
+     */
+    public function averageOfStudentGrades($id=null)
     {
-        return $this->createQueryBuilder('g')
-            ->andWhere('g.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('g.id', 'ASC')
-            ->setMaxResults(10)
+        $averageOfStudent = $this->createQueryBuilder('g')
+            ->andWhere('g.student = :studentId')
+            ->setParameter('studentId', $id)
+            ->select("avg(g.value)")
             ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
+            ->getSingleScalarResult();
 
-    /*
-    public function findOneBySomeField($value): ?Grade
-    {
-        return $this->createQueryBuilder('g')
-            ->andWhere('g.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        return number_format($averageOfStudent, 2, '.', '');
     }
-    */
+
+    /**
+     * @return Returns the average of the students' marks
+     * @throws \Doctrine\ORM\NoResultException
+     * @throws \Doctrine\ORM\NonUniqueResultException
+     */
+    public function getAverageOfAllGrades()
+    {
+         $agerageOfGrades = $this->createQueryBuilder('g')
+            ->select("avg(g.value)")
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return number_format($agerageOfGrades, 2, '.', '');
+    }
+
+    /**
+     * @param $id
+     * @return Returns grades of student's
+     * @throws \Doctrine\ORM\NoResultException
+     * @throws \Doctrine\ORM\NonUniqueResultException
+     */
+    public function getGradesByStudent($id=null)
+    {
+         return $this->createQueryBuilder('g')
+             ->andWhere('g.student = :studentId')
+             ->setParameter('studentId', $id)
+             ->getQuery()
+             ->execute();
+    }
 }

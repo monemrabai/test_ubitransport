@@ -2,20 +2,37 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Core\Annotation\ApiProperty;
 use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\StudentRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use App\Controller\StudentAverageController;
+use App\Controller\AllStudentsAverageController;
+use App\Controller\StudentGradeController;
 
 /**
  * @ApiResource(
  *     normalizationContext={"groups"={"read:student"}},
- *     itemOperations={"get", "put", "delete"}
+ *     collectionOperations={
+ *      "get",
+ *      "post"={"normalization_context"={"groups"="post:student"}},
+ *      "average"={"method"="GET","path"="/students/average","controller"=AllStudentsAverageController::class}
+ *     },
+ *     itemOperations={
+ *      "put"={"denormalization_context"={"groups"="put:student"}},
+ *      "delete",
+ *      "get",
+ *      "average"={"method"="GET","path"="/student/{id}/average","controller"=StudentAverageController::class},
+ *      "grades"={"method"="GET","path"="/student/{id}/grades","controller"=StudentGradeController::class}
+ *    }
  * )
  * @ORM\Entity(repositoryClass=StudentRepository::class)
  */
+
+
 class Student
 {
     /**
@@ -28,20 +45,21 @@ class Student
 
     /**
      * @ORM\Column(type="string", length=50)
-     * @Groups({"read:student", "read:grade"})
+     * @Groups({"read:student", "read:grade", "post:student", "put:student"})
      */
     private $firstName;
 
     /**
      * @ORM\Column(type="string", length=50)
-     * @Groups({"read:student", "read:grade"})
+     * @Groups({"read:student", "read:grade", "post:student", "put:student"})
      */
     private $lastName;
 
     /**
      * @ORM\Column(type="date", nullable=true)
-     * @Groups({"read:student"})
+     * @Groups({"read:student", "post:student", "put:student"})
      */
+
     private $birthDate;
 
     /**

@@ -38,8 +38,6 @@ $(document).ready(function () {
                     delete myJsonObj.id;
                     myJsonObj = JSON.stringify(myJsonObj);
 
-                    $('#students').DataTable().ajax.reload();
-
                     return myJsonObj;
                 }
             },
@@ -54,7 +52,6 @@ $(document).ready(function () {
                     myJsonObj = myJsonObj[Object.keys(myJsonObj)[0]];
                     myJsonObj = JSON.stringify(myJsonObj);
 
-                    $('#students').DataTable().ajax.reload();
                     return myJsonObj;
                 }
             },
@@ -121,8 +118,34 @@ $(document).ready(function () {
         });
     });
 
+    // Average student
+    $('#students').on('click', 'td.editor-average', function (e) {
+        e.stopPropagation();
+        var studentId = studentTable.row($(this).parent()).data().id;
+
+        $.ajax({
+            type: "GET",
+            url: "api/student/" + studentId + "/average",
+            success: function (data) {
+                alert(data);
+            }
+        });
+    });
+
+    // Average all students
+    $(".editor-average-grades").on('click', function (e) {
+        $.ajax({
+            type: "GET",
+            url: "api/students/average",
+            success: function (data) {
+                alert(data);
+            }
+        });
+    });
+
     var studentTable = $("#students").DataTable({
         serverSide: true,
+        bFilter: false,
         dom: "Bfrtip",
         ajax: {
             'url': '/api/students',
@@ -134,6 +157,8 @@ $(document).ready(function () {
                 json.recordsFiltered = json['hydra:totalItems'];
                 json.data = json['hydra:member'];
 
+                //$('#students').DataTable().ajax.reload();
+
                 return JSON.stringify(json);
             }
         },
@@ -143,6 +168,11 @@ $(document).ready(function () {
             {data: 'lastName'},
             {data: 'birthDate'},
             //{data: 'birthDate', render: $.fn.dataTable.render.moment( 'DD/MM/YYYY' ) },
+            {
+                data: null,
+                className: "dt-center editor-average",
+                "defaultContent": "<i class='fa fa-calculator'></i>"
+            },
             {
                 data: null,
                 className: "dt-center editor-edit",
@@ -161,49 +191,35 @@ $(document).ready(function () {
         },
     });
 
-    $('#button').click(function () {
-        table.row('.selected').remove().draw(false);
-    });
-
     var gradesEditor = new $.fn.dataTable.Editor({
         ajax: {
-
+            url: '/api/grades',
+            data: function (d) {
+                var selected = studentTable.row({selected: true});
+                if (selected.any()) {
+                    d.student = selected.data().id;
+                }
+            },
             create: {
                 type: 'POST',
                 url: '/api/grades',
                 table: "#grades",
-                contentType: "application/json; charset=utf-8",
+                contentType: "application/ld+json; charset=utf-8",
                 dataType: "json",
                 data: function (datas) {
                     var myJsonObj;
                     myJsonObj = datas.data[0];
+                    myJsonObj.value = parseFloat(myJsonObj.value);
+                    myJsonObj.student = '/api/students/' + myJsonObj.student;
+
                     delete myJsonObj.id;
                     myJsonObj = JSON.stringify(myJsonObj);
 
-                    $('#students').DataTable().ajax.reload();
-
-                    return myJsonObj;
-                }
-            },
-            edit: {
-                type: 'PUT',
-                url: 'api/grades/{id}',
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                data: function (datas) {
-                    var myJsonObj;
-                    myJsonObj = datas.data;
-                    myJsonObj = myJsonObj[Object.keys(myJsonObj)[0]];
-                    myJsonObj = JSON.stringify(myJsonObj);
-
                     $('#grades').DataTable().ajax.reload();
+
                     return myJsonObj;
                 }
             },
-            remove: {
-                type: 'DELETE',
-                url: 'api/grades/{id}'
-            }
         },
         table: '#grades',
         "idSrc": 'id',
@@ -219,8 +235,7 @@ $(document).ready(function () {
         }, {
             label: "Elève:",
             name: "student",
-            type: "select",
-            placeholder: "Sélectionner un élève"
+            visible: false
         }
         ]
     });
@@ -238,84 +253,43 @@ $(document).ready(function () {
         gradesEditor.field('id').hide();
     });
 
-    // Edit record
-    $('#grades').on('click', 'td.editor-grade-edit', function (e) {
-        e.preventDefault();
-
-        gradesEditor.edit($(this).closest('tr'), {
-            title: 'Modifier une note',
-            buttons: 'Enregistrer'
-        });
-    });
-
-    // Delete a record
-    $('#grades').on('click', 'td.editor-grade-delete', function (e) {
-        e.preventDefault();
-
-        gradesEditor.remove($(this).closest('tr'), {
-            title: 'Supprimer une note',
-            message: 'Êtes-vous sûr de vouloir supprimer cet enregistrement ?',
-            buttons: 'Supprimer'
-        });
-    });
-
     var gradesTable = $('#grades').DataTable({
         ajax: {
             serverSide: true,
-            dom: "Bfrtip",
-            url: '/api/grades',
+            bFilter: false,
             type: 'GET',
-            'headers': {'Accept': "application/ld+json"},
-            data: function (d) {
+            headers: {'Accept': "application/ld+json"},
+            'dataFilter': function (data) {
                 var selected = studentTable.row({selected: true});
 
                 if (selected.any()) {
-                    d.student = selected.data().id;
+                    var json = JSON.parse(data);
+                    json.recordTotal = json['hydra:totalItems'];
+                    json.recordsFiltered = json['hydra:totalItems'];
+                    json.data = json['hydra:member'];
+
+                    return JSON.stringify(json);
                 }
-            },
-            'dataFilter': function (data) {
 
-                var json = JSON.parse(data);
-                json.recordTotal = json['hydra:totalItems'];
-                json.recordsFiltered = json['hydra:totalItems'];
-                json.data = json['hydra:member'];
-
-                return JSON.stringify(json);
+                return JSON.stringify([]);
             }
         },
         columns: [
             {data: 'id', 'visible': false},
             {data: 'value'},
-            {data: 'subject'},
-            {
-                data: null,
-                render: function (data, type, row) {
-                    return row.student.firstName + ' ' + row.student.lastName;
-                }
-            },
-            {
-                data: null,
-                className: "dt-center editor-grade-edit",
-                defaultContent: '<i class="fa fa-pencil"/>',
-                orderable: false
-            },
-            {
-                data: null,
-                className: "dt-center editor-grade-delete",
-                defaultContent: '<i class="fa fa-trash"/>',
-                orderable: false
-            }
-        ]
-    });
-    studentTable.on('select', function (e) {
-        gradesTable.ajax.reload();
-        gradesEditor
-            .field('student')
-            .def(studentTable.row({selected: true}).data().id);
+            {data: 'subject'}
+        ],
+        select: true
     });
 
-    studentTable.on('deselect', function () {
-        gradesTable.ajax.reload();
+    studentTable.on('select', function (e) {
+        var studentId = studentTable.row({selected: true}).data().id;
+
+        gradesTable.ajax.url("/api/student/" + studentId + "/grades").load();
+
+        gradesEditor
+            .field('student')
+            .def(studentId);
     });
 
     gradesEditor.on('submitSuccess', function () {
